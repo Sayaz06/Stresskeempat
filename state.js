@@ -2,7 +2,8 @@
 
 const AppState = {
   user: null, // Firebase user
-  view: "login", // "login" | "subjects" | "versions" | "topics" | "subtopicLevel"
+  // "login" | "subjects" | "versions" | "topics" | "subtopicLevel" | "logs"
+  view: "login",
   currentSubject: null,
   currentVersion: null,
   currentTopic: null,
