@@ -1,6 +1,6 @@
 // service-worker.js
 
-const CACHE_NAME = "stresskeempat-cache-v2";
+const CACHE_NAME = "stresskeempat-cache-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -39,4 +39,5 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then(resp => resp || fetch(event.request))
   );
 });
+
 
