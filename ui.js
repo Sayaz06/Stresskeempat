@@ -82,6 +82,8 @@ function renderContent() {
     container.appendChild(renderTopicsView());
   } else if (AppState.view === "subtopicLevel") {
     container.appendChild(renderSubtopicLevelView());
+  } else if (AppState.view === "logs") {
+    container.appendChild(renderLogsView());
   }
 
   return container;
@@ -205,7 +207,29 @@ function renderSubjectsView() {
   left.appendChild(title);
   left.appendChild(subtitle);
 
+  const right = document.createElement("div");
+
+  const logBtn = document.createElement("button");
+  logBtn.className = "btn-secondary";
+  logBtn.type = "button";
+  logBtn.onclick = () => {
+    setView("logs");
+    renderApp();
+  };
+
+  const logIcon = document.createElement("span");
+  logIcon.className = "btn-secondary-icon";
+  logIcon.textContent = "⏱";
+
+  const logLabel = document.createElement("span");
+  logLabel.textContent = "Log Sejarah";
+
+  logBtn.appendChild(logIcon);
+  logBtn.appendChild(logLabel);
+  right.appendChild(logBtn);
+
   sectionHeader.appendChild(left);
+  sectionHeader.appendChild(right);
 
   container.appendChild(sectionHeader);
 
@@ -460,7 +484,7 @@ async function reloadVersions(container) {
   });
 }
 
-/* -------- Topics (Topik Besar) View -------- */
+/* -------- Topics View -------- */
 
 function renderTopicsView() {
   const container = document.createElement("div");
@@ -612,7 +636,6 @@ async function reloadTopics(container) {
 
     card.appendChild(header);
 
-    // Editor nota untuk topik besar
     const editorContainer = document.createElement("div");
     editorContainer.className = "editor-container";
 
@@ -731,6 +754,35 @@ function renderSubtopicLevelView() {
 
   container.appendChild(sectionHeader);
 
+  // BUTANG "TAMBAH KE LOG" KHAS UNTUK SUBTOPIK x.1
+  if (AppState.currentLevel === 1) {
+    const logBtn = document.createElement("button");
+    logBtn.className = "btn-secondary";
+    logBtn.type = "button";
+
+    const icon = document.createElement("span");
+    icon.className = "btn-secondary-icon";
+    icon.textContent = "⏱";
+
+    const label = document.createElement("span");
+    label.textContent = "Tambah ke Log";
+
+    logBtn.appendChild(icon);
+    logBtn.appendChild(label);
+
+    logBtn.onclick = async () => {
+      try {
+        await addLogEntry(AppState.currentSubject, AppState.currentVersion, AppState.currentTopic);
+        alert("Log sejarah telah ditambah.");
+      } catch (err) {
+        console.error("Gagal tambah log:", err);
+        alert("Gagal tambah log. Sila cuba lagi.");
+      }
+    };
+
+    container.appendChild(logBtn);
+  }
+
   const searchRow = createSearchRow(
     "Cari subtopik...",
     () => reloadSubtopics(container),
@@ -740,9 +792,7 @@ function renderSubtopicLevelView() {
         const parentId =
           AppState.currentLevel === 1
             ? AppState.currentTopic.id
-            : AppState.currentTopic.id; 
-        // Versi pertama: semua subtopic x.1..x.9 share parent topic.
-        // Kalau kau nak chain penuh kemudian, kita tambah state parentSubtopic khusus.
+            : AppState.currentTopic.id; // versi simple: semua level share parent topic
         await createSubtopic(parentId, AppState.currentLevel, name.trim());
         reloadSubtopics(container);
       }
@@ -780,160 +830,4 @@ async function reloadSubtopics(container) {
     return;
   }
 
-  items.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "item-card";
-
-    const header = document.createElement("div");
-    header.className = "item-card-header";
-
-    const left = document.createElement("div");
-    left.className = "item-card-title";
-    left.textContent = item.name;
-
-    const right = document.createElement("div");
-    right.className = "item-actions";
-
-    const badge = document.createElement("span");
-    badge.className = "badge-level";
-    badge.textContent = `x.${item.level}`;
-
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "icon-btn";
-    btnEdit.type = "button";
-    btnEdit.title = "Sunting nama";
-    btnEdit.innerHTML = "✎";
-    btnEdit.onclick = async (e) => {
-      e.stopPropagation();
-      const newName = prompt("Nama subtopik:", item.name);
-      if (newName && newName.trim()) {
-        await updateSubtopicName(item.id, newName.trim());
-        reloadSubtopics(container);
-      }
-    };
-
-    const btnDelete = document.createElement("button");
-    btnDelete.className = "icon-btn danger";
-    btnDelete.type = "button";
-    btnDelete.title = "Padam subtopik";
-    btnDelete.innerHTML = "✕";
-    btnDelete.onclick = async (e) => {
-      e.stopPropagation();
-      if (confirm("Padam subtopik ini?")) {
-        await deleteSubtopic(item.id);
-        reloadSubtopics(container);
-      }
-    };
-
-    if (AppState.currentLevel < 9) {
-      const btnNext = document.createElement("button");
-      btnNext.className = "icon-btn";
-      btnNext.type = "button";
-      btnNext.title = `Pergi ke subtopik x.${AppState.currentLevel + 1}`;
-      btnNext.innerHTML = "⤵";
-      btnNext.onclick = (e) => {
-        e.stopPropagation();
-        setCurrentLevel(AppState.currentLevel + 1);
-        setView("subtopicLevel");
-        AppState.searchText = "";
-        renderApp();
-      };
-      right.appendChild(btnNext);
-    }
-
-    right.appendChild(badge);
-    right.appendChild(btnEdit);
-    right.appendChild(btnDelete);
-
-    header.appendChild(left);
-    header.appendChild(right);
-    card.appendChild(header);
-
-    // Editor nota untuk subtopik
-    const editorContainer = document.createElement("div");
-    editorContainer.className = "editor-container";
-
-    const toolbar = document.createElement("div");
-    toolbar.className = "editor-toolbar";
-    toolbar.id = `toolbar-subtopic-${item.id}`;
-
-    toolbar.innerHTML = `
-      <span class="ql-formats">
-        <button class="ql-bold"></button>
-        <button class="ql-italic"></button>
-        <button class="ql-underline"></button>
-      </span>
-      <span class="ql-formats">
-        <button class="ql-list" value="ordered"></button>
-        <button class="ql-list" value="bullet"></button>
-      </span>
-      <span class="ql-formats">
-        <button class="ql-clean"></button>
-      </span>
-    `;
-
-    const editorArea = document.createElement("div");
-    editorArea.className = "editor-area";
-    editorArea.id = `editor-subtopic-${item.id}`;
-
-    editorContainer.appendChild(toolbar);
-    editorContainer.appendChild(editorArea);
-    card.appendChild(editorContainer);
-
-    listWrapper.appendChild(card);
-
-    const quill = new Quill(editorArea, {
-      theme: "snow",
-      placeholder: "Nota subtopik ini...",
-      modules: {
-        toolbar: `#toolbar-subtopic-${item.id}`
-      }
-    });
-
-    if (item.noteHtml) {
-      quill.root.innerHTML = item.noteHtml;
-    }
-
-    quill.on("text-change", debounce(async () => {
-      AppState.syncing = true;
-      updateFooterSync();
-      await updateSubtopicNote(item.id, quill.root.innerHTML);
-      AppState.syncing = false;
-      AppState.lastSynced = new Date();
-      updateFooterSync();
-    }, 600));
-  });
-}
-
-/* -------- Footer sync update -------- */
-
-function updateFooterSync() {
-  const root = document.getElementById("app-root");
-  if (!root) return;
-  const footer = root.querySelector(".app-footer");
-  if (!footer) return;
-  const pill = footer.querySelector(".sync-pill");
-  if (!pill) return;
-
-  pill.innerHTML = "";
-
-  const dot = document.createElement("span");
-  dot.textContent = "●";
-  dot.style.color = AppState.syncing ? "#f97316" : "#22c55e";
-
-  const label = document.createElement("span");
-  label.textContent = AppState.syncing ? "Menyimpan..." : "Tersimpan";
-
-  pill.appendChild(dot);
-  pill.appendChild(label);
-}
-
-/* -------- Util: debounce -------- */
-
-function debounce(fn, delay) {
-  let t;
-  return function (...args) {
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
+  items
