@@ -27,7 +27,7 @@ async function updateSubjectName(id, name) {
   });
 }
 
-// SUBJECT CASCADE DELETE
+// SUBJECT CASCADE DELETE: padam subject + semua anak (versions, topics, subtopics)
 async function deleteSubjectCascade(subjectId) {
   // 1. Semua versions di bawah subject
   const versionsSnap = await db.collection("versions")
@@ -60,9 +60,8 @@ async function deleteSubjectCascade(subjectId) {
   await db.collection("subjects").doc(subjectId).delete();
 }
 
-// Padam semua subtopics yang parentId = parentId (recursive)
+// Padam semua subtopics yang parentId = parentId (recursive ikut level)
 async function deleteSubtopicsCascade(parentId) {
-  // Loop level 1 hingga 9
   for (let level = 1; level <= 9; level++) {
     const snap = await db.collection("subtopics")
       .where("parentId", "==", parentId)
@@ -72,7 +71,7 @@ async function deleteSubtopicsCascade(parentId) {
     for (const doc of snap.docs) {
       const subId = doc.id;
 
-      // Padam anak subtopic yang mungkin ada parent = subId
+      // Padam anak subtopic yang mungkin parentId = subId
       await deleteSubtopicsCascade(subId);
 
       // Padam subtopic ini
@@ -125,7 +124,7 @@ async function updateVersionName(id, name) {
 }
 
 async function deleteVersion(id) {
-  // Versi ini tidak cascade, kita boleh buat kemudian kalau perlu.
+  // Buat masa ini: padam version sahaja.
   await db.collection("versions").doc(id).delete();
 }
 
@@ -182,7 +181,7 @@ async function updateTopicNote(id, noteHtml) {
 }
 
 async function deleteTopic(id) {
-  // Tidak cascade di sini (hanya manual). Subject cascade sudah cover.
+  // Tidak cascade di sini (subject cascade sudah cover).
   await db.collection("topics").doc(id).delete();
 }
 
@@ -261,5 +260,36 @@ async function listSubtopics(parentId, level, searchText = "") {
     items = items.filter(x => (x.name || "").toLowerCase().includes(s));
   }
 
+  return items;
+}
+
+/* ------- Logs (Sejarah) ------- */
+
+async function addLogEntry(subject, version, topic) {
+  const user = AppState.user;
+  if (!user || !subject || !version || !topic) return;
+
+  await db.collection("logs").add({
+    subjectId: subject.id,
+    subjectName: subject.name,
+    versionId: version.id,
+    versionName: version.name,
+    topicId: topic.id,
+    topicName: topic.name,
+    ownerUid: user.uid,
+    createdAt: serverTimestamp()
+  });
+}
+
+async function listLogs() {
+  const user = AppState.user;
+  if (!user) return [];
+
+  const snapshot = await db.collection("logs")
+    .where("ownerUid", "==", user.uid)
+    .orderBy("createdAt", "desc")
+    .get();
+
+  const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   return items;
 }
