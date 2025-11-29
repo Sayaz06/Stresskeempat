@@ -1,13 +1,12 @@
 // state.js
 
 const AppState = {
-  user: null, // Firebase user
-  // "login" | "subjects" | "versions" | "topics" | "subtopicLevel" | "logs"
-  view: "login",
+  user: null,
+  view: "login", 
   currentSubject: null,
   currentVersion: null,
   currentTopic: null,
-  currentLevel: 0, // 0 = topik besar, 1..9 = subtopik x.1..x.9
+  currentLevel: 0, 
   searchText: "",
   editors: {},
   syncing: false,
