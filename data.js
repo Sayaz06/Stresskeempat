@@ -4,20 +4,20 @@ function serverTimestamp() {
   return firebase.firestore.FieldValue.serverTimestamp();
 }
 
-/* ------- Subjects ------- */
+/* ---------------- SUBJECTS ---------------- */
 
 async function createSubject(name) {
   const user = AppState.user;
   if (!user) return;
 
   const docRef = await db.collection("subjects").add({
-    name: name || "Subjek baru",
+    name,
     ownerUid: user.uid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
-  return { id: docRef.id, name, ownerUid: user.uid };
+  return { id: docRef.id, name };
 }
 
 async function updateSubjectName(id, name) {
@@ -27,40 +27,32 @@ async function updateSubjectName(id, name) {
   });
 }
 
-// SUBJECT CASCADE DELETE: padam subject + semua anak (versions, topics, subtopics)
 async function deleteSubjectCascade(subjectId) {
-  // 1. Semua versions di bawah subject
-  const versionsSnap = await db.collection("versions")
+  const versions = await db.collection("versions")
     .where("subjectId", "==", subjectId)
     .get();
 
-  for (const versionDoc of versionsSnap.docs) {
-    const versionId = versionDoc.id;
+  for (const v of versions.docs) {
+    const versionId = v.id;
 
-    // 2. Semua topics di bawah version
-    const topicsSnap = await db.collection("topics")
+    const topics = await db.collection("topics")
       .where("versionId", "==", versionId)
       .get();
 
-    for (const topicDoc of topicsSnap.docs) {
-      const topicId = topicDoc.id;
+    for (const t of topics.docs) {
+      const topicId = t.id;
 
-      // 3. Padam semua subtopics di bawah topic ini (level 1..9)
       await deleteSubtopicsCascade(topicId);
 
-      // 4. Padam topic
       await db.collection("topics").doc(topicId).delete();
     }
 
-    // 5. Padam version
     await db.collection("versions").doc(versionId).delete();
   }
 
-  // 6. Akhir sekali padam subject
   await db.collection("subjects").doc(subjectId).delete();
 }
 
-// Padam semua subtopics yang parentId = parentId (recursive ikut level)
 async function deleteSubtopicsCascade(parentId) {
   for (let level = 1; level <= 9; level++) {
     const snap = await db.collection("subtopics")
@@ -69,18 +61,13 @@ async function deleteSubtopicsCascade(parentId) {
       .get();
 
     for (const doc of snap.docs) {
-      const subId = doc.id;
-
-      // Padam anak subtopic yang mungkin parentId = subId
-      await deleteSubtopicsCascade(subId);
-
-      // Padam subtopic ini
-      await db.collection("subtopics").doc(subId).delete();
+      await deleteSubtopicsCascade(doc.id);
+      await db.collection("subtopics").doc(doc.id).delete();
     }
   }
 }
 
-async function listSubjects(searchText = "") {
+async function listSubjects(search = "") {
   const user = AppState.user;
   if (!user) return [];
 
@@ -88,18 +75,18 @@ async function listSubjects(searchText = "") {
     .where("ownerUid", "==", user.uid)
     .orderBy("createdAt", "asc");
 
-  const snapshot = await q.get();
-  let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snap = await q.get();
+  let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  if (searchText) {
-    const s = searchText.toLowerCase();
-    items = items.filter(x => (x.name || "").toLowerCase().includes(s));
+  if (search) {
+    const s = search.toLowerCase();
+    items = items.filter(x => x.name.toLowerCase().includes(s));
   }
 
   return items;
 }
 
-/* ------- Versions ------- */
+/* ---------------- VERSIONS ---------------- */
 
 async function createVersion(subjectId, name) {
   const user = AppState.user;
@@ -107,13 +94,13 @@ async function createVersion(subjectId, name) {
 
   const docRef = await db.collection("versions").add({
     subjectId,
-    name: name || "Versi baru",
+    name,
     ownerUid: user.uid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
-  return { id: docRef.id, subjectId, name, ownerUid: user.uid };
+  return { id: docRef.id, subjectId, name };
 }
 
 async function updateVersionName(id, name) {
@@ -123,32 +110,27 @@ async function updateVersionName(id, name) {
   });
 }
 
-async function deleteVersion(id) {
-  // Buat masa ini: padam version sahaja.
-  await db.collection("versions").doc(id).delete();
-}
-
-async function listVersions(subjectId, searchText = "") {
+async function listVersions(subjectId, search = "") {
   const user = AppState.user;
-  if (!user || !subjectId) return [];
+  if (!user) return [];
 
   let q = db.collection("versions")
     .where("ownerUid", "==", user.uid)
     .where("subjectId", "==", subjectId)
     .orderBy("createdAt", "asc");
 
-  const snapshot = await q.get();
-  let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snap = await q.get();
+  let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  if (searchText) {
-    const s = searchText.toLowerCase();
-    items = items.filter(x => (x.name || "").toLowerCase().includes(s));
+  if (search) {
+    const s = search.toLowerCase();
+    items = items.filter(x => x.name.toLowerCase().includes(s));
   }
 
   return items;
 }
 
-/* ------- Topics (Topik Besar) ------- */
+/* ---------------- TOPICS ---------------- */
 
 async function createTopic(versionId, name) {
   const user = AppState.user;
@@ -156,14 +138,14 @@ async function createTopic(versionId, name) {
 
   const docRef = await db.collection("topics").add({
     versionId,
-    name: name || "Topik baru",
+    name,
     ownerUid: user.uid,
     noteHtml: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
-  return { id: docRef.id, versionId, name, ownerUid: user.uid };
+  return { id: docRef.id, versionId, name };
 }
 
 async function updateTopicName(id, name) {
@@ -173,39 +155,34 @@ async function updateTopicName(id, name) {
   });
 }
 
-async function updateTopicNote(id, noteHtml) {
+async function updateTopicNote(id, html) {
   await db.collection("topics").doc(id).update({
-    noteHtml,
+    noteHtml: html,
     updatedAt: serverTimestamp()
   });
 }
 
-async function deleteTopic(id) {
-  // Tidak cascade di sini (subject cascade sudah cover).
-  await db.collection("topics").doc(id).delete();
-}
-
-async function listTopics(versionId, searchText = "") {
+async function listTopics(versionId, search = "") {
   const user = AppState.user;
-  if (!user || !versionId) return [];
+  if (!user) return [];
 
   let q = db.collection("topics")
     .where("ownerUid", "==", user.uid)
     .where("versionId", "==", versionId)
     .orderBy("createdAt", "asc");
 
-  const snapshot = await q.get();
-  let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snap = await q.get();
+  let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  if (searchText) {
-    const s = searchText.toLowerCase();
-    items = items.filter(x => (x.name || "").toLowerCase().includes(s));
+  if (search) {
+    const s = search.toLowerCase();
+    items = items.filter(x => x.name.toLowerCase().includes(s));
   }
 
   return items;
 }
 
-/* ------- Subtopics (x.1 ... x.9) ------- */
+/* ---------------- SUBTOPICS ---------------- */
 
 async function createSubtopic(parentId, level, name) {
   const user = AppState.user;
@@ -213,15 +190,15 @@ async function createSubtopic(parentId, level, name) {
 
   const docRef = await db.collection("subtopics").add({
     parentId,
-    level, // 1..9
-    name: name || "Subtopik baru",
+    level,
+    name,
     ownerUid: user.uid,
     noteHtml: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
-  return { id: docRef.id, parentId, level, name, ownerUid: user.uid };
+  return { id: docRef.id, parentId, level, name };
 }
 
 async function updateSubtopicName(id, name) {
@@ -231,20 +208,16 @@ async function updateSubtopicName(id, name) {
   });
 }
 
-async function updateSubtopicNote(id, noteHtml) {
+async function updateSubtopicNote(id, html) {
   await db.collection("subtopics").doc(id).update({
-    noteHtml,
+    noteHtml: html,
     updatedAt: serverTimestamp()
   });
 }
 
-async function deleteSubtopic(id) {
-  await db.collection("subtopics").doc(id).delete();
-}
-
-async function listSubtopics(parentId, level, searchText = "") {
+async function listSubtopics(parentId, level, search = "") {
   const user = AppState.user;
-  if (!user || !parentId) return [];
+  if (!user) return [];
 
   let q = db.collection("subtopics")
     .where("ownerUid", "==", user.uid)
@@ -252,22 +225,22 @@ async function listSubtopics(parentId, level, searchText = "") {
     .where("level", "==", level)
     .orderBy("createdAt", "asc");
 
-  const snapshot = await q.get();
-  let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snap = await q.get();
+  let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  if (searchText) {
-    const s = searchText.toLowerCase();
-    items = items.filter(x => (x.name || "").toLowerCase().includes(s));
+  if (search) {
+    const s = search.toLowerCase();
+    items = items.filter(x => x.name.toLowerCase().includes(s));
   }
 
   return items;
 }
 
-/* ------- Logs (Sejarah) ------- */
+/* ---------------- LOGS (WITH SUBTOPIC X.1) ---------------- */
 
-async function addLogEntry(subject, version, topic) {
+async function addLogEntry(subject, version, topic, subtopicX1) {
   const user = AppState.user;
-  if (!user || !subject || !version || !topic) return;
+  if (!user) return;
 
   await db.collection("logs").add({
     subjectId: subject.id,
@@ -276,6 +249,8 @@ async function addLogEntry(subject, version, topic) {
     versionName: version.name,
     topicId: topic.id,
     topicName: topic.name,
+    subtopicId: subtopicX1.id,
+    subtopicName: subtopicX1.name,
     ownerUid: user.uid,
     createdAt: serverTimestamp()
   });
@@ -285,11 +260,10 @@ async function listLogs() {
   const user = AppState.user;
   if (!user) return [];
 
-  const snapshot = await db.collection("logs")
+  const snap = await db.collection("logs")
     .where("ownerUid", "==", user.uid)
     .orderBy("createdAt", "desc")
     .get();
 
-  const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  return items;
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
