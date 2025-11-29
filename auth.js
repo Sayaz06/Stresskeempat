@@ -17,6 +17,7 @@ function signOut() {
 
 auth.onAuthStateChanged(user => {
   setUser(user);
+
   if (user) {
     setView("subjects");
   } else {
@@ -26,5 +27,6 @@ auth.onAuthStateChanged(user => {
     setCurrentTopic(null);
     setCurrentLevel(0);
   }
+
   renderApp();
 });
