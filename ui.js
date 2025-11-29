@@ -1,4 +1,7 @@
-// ui.js
+// ui.js — PART 1
+// ------------------------------------------------------------
+// HEADER + LOGIN + SUBJECTS + VERSIONS + TOPICS
+// ------------------------------------------------------------
 
 function renderApp() {
   const root = document.getElementById("app-root");
@@ -13,6 +16,8 @@ function renderApp() {
 
   root.appendChild(shell);
 }
+
+/* ---------------- HEADER ---------------- */
 
 function renderHeader() {
   const header = document.createElement("div");
@@ -39,8 +44,7 @@ function renderHeader() {
 
     const avatar = document.createElement("div");
     avatar.className = "user-avatar";
-    const initial = (AppState.user.displayName || AppState.user.email || "?")[0].toUpperCase();
-    avatar.textContent = initial;
+    avatar.textContent = (AppState.user.displayName || AppState.user.email)[0].toUpperCase();
 
     const email = document.createElement("div");
     email.className = "user-email";
@@ -56,7 +60,7 @@ function renderHeader() {
     right.appendChild(btnLogout);
   } else {
     right.className = "text-muted";
-    right.textContent = "Sila log masuk dengan Google";
+    right.textContent = "Sila log masuk";
   }
 
   header.appendChild(brand);
@@ -64,6 +68,8 @@ function renderHeader() {
 
   return header;
 }
+
+/* ---------------- CONTENT ROUTER ---------------- */
 
 function renderContent() {
   const container = document.createElement("div");
@@ -89,12 +95,14 @@ function renderContent() {
   return container;
 }
 
+/* ---------------- FOOTER ---------------- */
+
 function renderFooter() {
   const footer = document.createElement("div");
   footer.className = "app-footer";
 
   const left = document.createElement("div");
-  left.textContent = "Data disimpan dalam Firebase Firestore";
+  left.textContent = "Data disimpan dalam Firestore";
 
   const right = document.createElement("div");
   right.className = "sync-pill";
@@ -115,7 +123,7 @@ function renderFooter() {
   return footer;
 }
 
-/* -------- Login View -------- */
+/* ---------------- LOGIN VIEW ---------------- */
 
 function renderLoginView() {
   const card = document.createElement("div");
@@ -123,24 +131,24 @@ function renderLoginView() {
 
   const title = document.createElement("div");
   title.className = "login-title";
-  title.textContent = "Log masuk untuk mula simpan nota";
+  title.textContent = "Log masuk untuk mula";
 
   const subtitle = document.createElement("div");
   subtitle.className = "login-subtitle";
-  subtitle.textContent = "Aplikasi ini menggunakan akaun Google anda untuk menyimpan nota di awan.";
+  subtitle.textContent = "Nota anda disimpan di awan.";
 
   const btn = document.createElement("button");
   btn.className = "btn-primary";
   btn.onclick = () => signInWithGoogle();
 
-  const iconCircle = document.createElement("span");
-  iconCircle.className = "btn-icon-circle";
-  iconCircle.textContent = "G";
+  const icon = document.createElement("span");
+  icon.className = "btn-icon-circle";
+  icon.textContent = "G";
 
   const text = document.createElement("span");
   text.textContent = "Log masuk dengan Google";
 
-  btn.appendChild(iconCircle);
+  btn.appendChild(icon);
   btn.appendChild(text);
 
   card.appendChild(title);
@@ -150,26 +158,24 @@ function renderLoginView() {
   return card;
 }
 
-/* -------- Helper: Search row -------- */
+/* ---------------- SEARCH ROW ---------------- */
 
-function createSearchRow(placeholder, onSearchChange, onAddClick, addLabel) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "search-row";
+function createSearchRow(placeholder, onSearch, onAdd, addLabel) {
+  const row = document.createElement("div");
+  row.className = "search-row";
 
   const input = document.createElement("input");
   input.className = "input-search";
-  input.type = "search";
   input.placeholder = placeholder;
-  input.value = AppState.searchText || "";
+  input.value = AppState.searchText;
   input.oninput = (e) => {
     AppState.searchText = e.target.value;
-    onSearchChange && onSearchChange(AppState.searchText);
+    onSearch();
   };
 
-  const btnAdd = document.createElement("button");
-  btnAdd.className = "btn-secondary";
-  btnAdd.type = "button";
-  btnAdd.onclick = () => onAddClick && onAddClick();
+  const btn = document.createElement("button");
+  btn.className = "btn-secondary";
+  btn.onclick = () => onAdd();
 
   const icon = document.createElement("span");
   icon.className = "btn-secondary-icon";
@@ -178,22 +184,22 @@ function createSearchRow(placeholder, onSearchChange, onAddClick, addLabel) {
   const label = document.createElement("span");
   label.textContent = addLabel;
 
-  btnAdd.appendChild(icon);
-  btnAdd.appendChild(label);
+  btn.appendChild(icon);
+  btn.appendChild(label);
 
-  wrapper.appendChild(input);
-  wrapper.appendChild(btnAdd);
+  row.appendChild(input);
+  row.appendChild(btn);
 
-  return wrapper;
+  return row;
 }
 
-/* -------- Subjects View -------- */
+/* ---------------- SUBJECTS VIEW ---------------- */
 
 function renderSubjectsView() {
   const container = document.createElement("div");
 
-  const sectionHeader = document.createElement("div");
-  sectionHeader.className = "section-header";
+  const header = document.createElement("div");
+  header.className = "section-header";
 
   const left = document.createElement("div");
   const title = document.createElement("div");
@@ -202,7 +208,7 @@ function renderSubjectsView() {
 
   const subtitle = document.createElement("div");
   subtitle.className = "section-subtitle";
-  subtitle.textContent = "Tambah subjek, kemudian versi, topik besar dan subtopik.";
+  subtitle.textContent = "Tambah subjek, versi, topik dan subtopik.";
 
   left.appendChild(title);
   left.appendChild(subtitle);
@@ -211,33 +217,33 @@ function renderSubjectsView() {
 
   const logBtn = document.createElement("button");
   logBtn.className = "btn-secondary";
-  logBtn.type = "button";
   logBtn.onclick = () => {
     setView("logs");
     renderApp();
   };
 
-  const logIcon = document.createElement("span");
-  logIcon.className = "btn-secondary-icon";
-  logIcon.textContent = "⏱";
+  const icon = document.createElement("span");
+  icon.className = "btn-secondary-icon";
+  icon.textContent = "⏱";
 
-  const logLabel = document.createElement("span");
-  logLabel.textContent = "Log Sejarah";
+  const label = document.createElement("span");
+  label.textContent = "Log Sejarah";
 
-  logBtn.appendChild(logIcon);
-  logBtn.appendChild(logLabel);
+  logBtn.appendChild(icon);
+  logBtn.appendChild(label);
+
   right.appendChild(logBtn);
 
-  sectionHeader.appendChild(left);
-  sectionHeader.appendChild(right);
+  header.appendChild(left);
+  header.appendChild(right);
 
-  container.appendChild(sectionHeader);
+  container.appendChild(header);
 
   const searchRow = createSearchRow(
     "Cari subjek...",
     () => reloadSubjects(container),
     async () => {
-      const name = prompt("Nama subjek baru:", "Subjek Perniagaan");
+      const name = prompt("Nama subjek:");
       if (name) {
         await createSubject(name);
         reloadSubjects(container);
@@ -245,12 +251,13 @@ function renderSubjectsView() {
     },
     "Tambah Subjek"
   );
+
   container.appendChild(searchRow);
 
-  const listWrapper = document.createElement("div");
-  listWrapper.className = "list-stack";
-  listWrapper.id = "subjects-list";
-  container.appendChild(listWrapper);
+  const list = document.createElement("div");
+  list.className = "list-stack";
+  list.id = "subjects-list";
+  container.appendChild(list);
 
   reloadSubjects(container);
 
@@ -258,16 +265,16 @@ function renderSubjectsView() {
 }
 
 async function reloadSubjects(container) {
-  const listWrapper = container.querySelector("#subjects-list");
-  listWrapper.innerHTML = "";
+  const list = container.querySelector("#subjects-list");
+  list.innerHTML = "";
 
-  const items = await listSubjects(AppState.searchText || "");
+  const items = await listSubjects(AppState.searchText);
 
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Tiada subjek lagi. Tekan 'Tambah Subjek' untuk mula.";
-    listWrapper.appendChild(empty);
+    empty.textContent = "Tiada subjek.";
+    list.appendChild(empty);
     return;
   }
 
@@ -289,36 +296,32 @@ async function reloadSubjects(container) {
     badge.className = "badge-level";
     badge.textContent = "Subjek";
 
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "icon-btn";
-    btnEdit.type = "button";
-    btnEdit.title = "Sunting nama";
-    btnEdit.innerHTML = "✎";
-    btnEdit.onclick = async (e) => {
+    const edit = document.createElement("button");
+    edit.className = "icon-btn";
+    edit.innerHTML = "✎";
+    edit.onclick = async (e) => {
       e.stopPropagation();
-      const newName = prompt("Nama subjek:", item.name);
-      if (newName && newName.trim()) {
-        await updateSubjectName(item.id, newName.trim());
+      const name = prompt("Nama subjek:", item.name);
+      if (name) {
+        await updateSubjectName(item.id, name);
         reloadSubjects(container);
       }
     };
 
-    const btnDelete = document.createElement("button");
-    btnDelete.className = "icon-btn danger";
-    btnDelete.type = "button";
-    btnDelete.title = "Padam subjek";
-    btnDelete.innerHTML = "✕";
-    btnDelete.onclick = async (e) => {
+    const del = document.createElement("button");
+    del.className = "icon-btn danger";
+    del.innerHTML = "✕";
+    del.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm("Padam subjek ini BESERTA semua versi, topik dan subtopik di bawahnya? Tindakan ini tidak boleh diundur.")) {
+      if (confirm("Padam subjek ini beserta semua anak?")) {
         await deleteSubjectCascade(item.id);
         reloadSubjects(container);
       }
     };
 
     right.appendChild(badge);
-    right.appendChild(btnEdit);
-    right.appendChild(btnDelete);
+    right.appendChild(edit);
+    right.appendChild(del);
 
     header.appendChild(left);
     header.appendChild(right);
@@ -332,39 +335,38 @@ async function reloadSubjects(container) {
       renderApp();
     };
 
-    listWrapper.appendChild(card);
+    list.appendChild(card);
   });
 }
 
-/* -------- Versions View -------- */
+/* ---------------- VERSIONS VIEW ---------------- */
 
 function renderVersionsView() {
   const container = document.createElement("div");
 
-  const backRow = document.createElement("div");
-  backRow.className = "back-row";
+  const back = document.createElement("div");
+  back.className = "back-row";
 
-  const backBtn = document.createElement("button");
-  backBtn.className = "back-btn";
-  backBtn.type = "button";
-  backBtn.innerHTML = "⟵ <span>Subjek</span>";
-  backBtn.onclick = () => {
+  const btn = document.createElement("button");
+  btn.className = "back-btn";
+  btn.innerHTML = "⟵ <span>Subjek</span>";
+  btn.onclick = () => {
     setView("subjects");
     setCurrentSubject(null);
     AppState.searchText = "";
     renderApp();
   };
 
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "breadcrumb";
-  breadcrumb.textContent = AppState.currentSubject ? AppState.currentSubject.name : "";
+  const crumb = document.createElement("div");
+  crumb.className = "breadcrumb";
+  crumb.textContent = AppState.currentSubject.name;
 
-  backRow.appendChild(backBtn);
-  backRow.appendChild(breadcrumb);
-  container.appendChild(backRow);
+  back.appendChild(btn);
+  back.appendChild(crumb);
+  container.appendChild(back);
 
-  const sectionHeader = document.createElement("div");
-  sectionHeader.className = "section-header";
+  const header = document.createElement("div");
+  header.className = "section-header";
 
   const left = document.createElement("div");
   const title = document.createElement("div");
@@ -373,32 +375,33 @@ function renderVersionsView() {
 
   const subtitle = document.createElement("div");
   subtitle.className = "section-subtitle";
-  subtitle.textContent = "Contoh: Perniagaan Semester 1, Ulangan, dll.";
+  subtitle.textContent = "Contoh: Semester 1, Ulangan, Nota Ringkas";
 
   left.appendChild(title);
   left.appendChild(subtitle);
-  sectionHeader.appendChild(left);
+  header.appendChild(left);
 
-  container.appendChild(sectionHeader);
+  container.appendChild(header);
 
   const searchRow = createSearchRow(
     "Cari versi...",
     () => reloadVersions(container),
     async () => {
-      const name = prompt("Nama versi:", "Perniagaan Semester 1");
+      const name = prompt("Nama versi:");
       if (name) {
-        await createVersion(AppState.currentSubject.id, name.trim());
+        await createVersion(AppState.currentSubject.id, name);
         reloadVersions(container);
       }
     },
     "Tambah Versi"
   );
+
   container.appendChild(searchRow);
 
-  const listWrapper = document.createElement("div");
-  listWrapper.className = "list-stack";
-  listWrapper.id = "versions-list";
-  container.appendChild(listWrapper);
+  const list = document.createElement("div");
+  list.className = "list-stack";
+  list.id = "versions-list";
+  container.appendChild(list);
 
   reloadVersions(container);
 
@@ -406,16 +409,16 @@ function renderVersionsView() {
 }
 
 async function reloadVersions(container) {
-  const listWrapper = container.querySelector("#versions-list");
-  listWrapper.innerHTML = "";
+  const list = container.querySelector("#versions-list");
+  list.innerHTML = "";
 
-  const items = await listVersions(AppState.currentSubject.id, AppState.searchText || "");
+  const items = await listVersions(AppState.currentSubject.id, AppState.searchText);
 
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Tiada versi untuk subjek ini.";
-    listWrapper.appendChild(empty);
+    empty.textContent = "Tiada versi.";
+    list.appendChild(empty);
     return;
   }
 
@@ -437,36 +440,32 @@ async function reloadVersions(container) {
     badge.className = "badge-level";
     badge.textContent = "Versi";
 
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "icon-btn";
-    btnEdit.type = "button";
-    btnEdit.title = "Sunting nama";
-    btnEdit.innerHTML = "✎";
-    btnEdit.onclick = async (e) => {
+    const edit = document.createElement("button");
+    edit.className = "icon-btn";
+    edit.innerHTML = "✎";
+    edit.onclick = async (e) => {
       e.stopPropagation();
-      const newName = prompt("Nama versi:", item.name);
-      if (newName && newName.trim()) {
-        await updateVersionName(item.id, newName.trim());
+      const name = prompt("Nama versi:", item.name);
+      if (name) {
+        await updateVersionName(item.id, name);
         reloadVersions(container);
       }
     };
 
-    const btnDelete = document.createElement("button");
-    btnDelete.className = "icon-btn danger";
-    btnDelete.type = "button";
-    btnDelete.title = "Padam versi";
-    btnDelete.innerHTML = "✕";
-    btnDelete.onclick = async (e) => {
+    const del = document.createElement("button");
+    del.className = "icon-btn danger";
+    del.innerHTML = "✕";
+    del.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm("Padam versi ini sahaja? (Topik dan subtopik bawah versi ini tidak dipadam automatik dalam versi ini)")) {
+      if (confirm("Padam versi ini?")) {
         await deleteVersion(item.id);
         reloadVersions(container);
       }
     };
 
     right.appendChild(badge);
-    right.appendChild(btnEdit);
-    right.appendChild(btnDelete);
+    right.appendChild(edit);
+    right.appendChild(del);
 
     header.appendChild(left);
     header.appendChild(right);
@@ -480,73 +479,73 @@ async function reloadVersions(container) {
       renderApp();
     };
 
-    listWrapper.appendChild(card);
+    list.appendChild(card);
   });
 }
 
-/* -------- Topics View -------- */
+/* ---------------- TOPICS VIEW ---------------- */
 
 function renderTopicsView() {
   const container = document.createElement("div");
 
-  const backRow = document.createElement("div");
-  backRow.className = "back-row";
+  const back = document.createElement("div");
+  back.className = "back-row";
 
-  const backBtn = document.createElement("button");
-  backBtn.className = "back-btn";
-  backBtn.type = "button";
-  backBtn.innerHTML = "⟵ <span>Versi</span>";
-  backBtn.onclick = () => {
+  const btn = document.createElement("button");
+  btn.className = "back-btn";
+  btn.innerHTML = "⟵ <span>Versi</span>";
+  btn.onclick = () => {
     setView("versions");
     setCurrentVersion(null);
     AppState.searchText = "";
     renderApp();
   };
 
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "breadcrumb";
-  breadcrumb.textContent = `${AppState.currentSubject?.name || ""} › ${AppState.currentVersion?.name || ""}`;
+  const crumb = document.createElement("div");
+  crumb.className = "breadcrumb";
+  crumb.textContent = `${AppState.currentSubject.name} › ${AppState.currentVersion.name}`;
 
-  backRow.appendChild(backBtn);
-  backRow.appendChild(breadcrumb);
-  container.appendChild(backRow);
+  back.appendChild(btn);
+  back.appendChild(crumb);
+  container.appendChild(back);
 
-  const sectionHeader = document.createElement("div");
-  sectionHeader.className = "section-header";
+  const header = document.createElement("div");
+  header.className = "section-header";
 
   const left = document.createElement("div");
   const title = document.createElement("div");
   title.className = "section-title";
-  title.textContent = "Topik besar";
+  title.textContent = "Topik Besar";
 
   const subtitle = document.createElement("div");
   subtitle.className = "section-subtitle";
-  subtitle.textContent = "Setiap topik ada ruang nota dan boleh bercabang ke subtopik x.1 hingga x.9.";
+  subtitle.textContent = "Setiap topik ada nota dan subtopik x.1 hingga x.9.";
 
   left.appendChild(title);
   left.appendChild(subtitle);
-  sectionHeader.appendChild(left);
+  header.appendChild(left);
 
-  container.appendChild(sectionHeader);
+  container.appendChild(header);
 
   const searchRow = createSearchRow(
-    "Cari topik besar...",
+    "Cari topik...",
     () => reloadTopics(container),
     async () => {
-      const name = prompt("Nama topik besar:", "Topik 1");
+      const name = prompt("Nama topik:");
       if (name) {
-        await createTopic(AppState.currentVersion.id, name.trim());
+        await createTopic(AppState.currentVersion.id, name);
         reloadTopics(container);
       }
     },
     "Tambah Topik"
   );
+
   container.appendChild(searchRow);
 
-  const listWrapper = document.createElement("div");
-  listWrapper.className = "list-stack";
-  listWrapper.id = "topics-list";
-  container.appendChild(listWrapper);
+  const list = document.createElement("div");
+  list.className = "list-stack";
+  list.id = "topics-list";
+  container.appendChild(list);
 
   reloadTopics(container);
 
@@ -554,16 +553,16 @@ function renderTopicsView() {
 }
 
 async function reloadTopics(container) {
-  const listWrapper = container.querySelector("#topics-list");
-  listWrapper.innerHTML = "";
+  const list = container.querySelector("#topics-list");
+  list.innerHTML = "";
 
-  const items = await listTopics(AppState.currentVersion.id, AppState.searchText || "");
+  const items = await listTopics(AppState.currentVersion.id, AppState.searchText);
 
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Tiada topik besar. Tekan 'Tambah Topik' untuk mula.";
-    listWrapper.appendChild(empty);
+    empty.textContent = "Tiada topik.";
+    list.appendChild(empty);
     return;
   }
 
@@ -585,39 +584,34 @@ async function reloadTopics(container) {
     badge.className = "badge-level";
     badge.textContent = "Topik";
 
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "icon-btn";
-    btnEdit.type = "button";
-    btnEdit.title = "Sunting nama";
-    btnEdit.innerHTML = "✎";
-    btnEdit.onclick = async (e) => {
+    const edit = document.createElement("button");
+    edit.className = "icon-btn";
+    edit.innerHTML = "✎";
+    edit.onclick = async (e) => {
       e.stopPropagation();
-      const newName = prompt("Nama topik:", item.name);
-      if (newName && newName.trim()) {
-        await updateTopicName(item.id, newName.trim());
+      const name = prompt("Nama topik:", item.name);
+      if (name) {
+        await updateTopicName(item.id, name);
         reloadTopics(container);
       }
     };
 
-    const btnDelete = document.createElement("button");
-    btnDelete.className = "icon-btn danger";
-    btnDelete.type = "button";
-    btnDelete.title = "Padam topik";
-    btnDelete.innerHTML = "✕";
-    btnDelete.onclick = async (e) => {
+    const del = document.createElement("button");
+    del.className = "icon-btn danger";
+    del.innerHTML = "✕";
+    del.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm("Padam topik ini? Subtopik di bawahnya tidak dipadam automatik dalam versi ini.")) {
+      if (confirm("Padam topik ini?")) {
         await deleteTopic(item.id);
         reloadTopics(container);
       }
     };
 
-    const btnGoSub = document.createElement("button");
-    btnGoSub.className = "icon-btn";
-    btnGoSub.type = "button";
-    btnGoSub.title = "Pergi ke subtopik x.1";
-    btnGoSub.innerHTML = "⤵";
-    btnGoSub.onclick = (e) => {
+    const go = document.createElement("button");
+    go.className = "icon-btn";
+    go.innerHTML = "⤵";
+    go.title = "Pergi ke subtopik x.1";
+    go.onclick = (e) => {
       e.stopPropagation();
       setCurrentTopic(item);
       setCurrentLevel(1);
@@ -627,93 +621,46 @@ async function reloadTopics(container) {
     };
 
     right.appendChild(badge);
-    right.appendChild(btnGoSub);
-    right.appendChild(btnEdit);
-    right.appendChild(btnDelete);
+    right.appendChild(go);
+    right.appendChild(edit);
+    right.appendChild(del);
 
     header.appendChild(left);
     header.appendChild(right);
 
     card.appendChild(header);
 
-    const editorContainer = document.createElement("div");
-    editorContainer.className = "editor-container";
-
-    const toolbar = document.createElement("div");
-    toolbar.className = "editor-toolbar";
-    toolbar.id = `toolbar-topic-${item.id}`;
-
-    toolbar.innerHTML = `
-      <span class="ql-formats">
-        <button class="ql-bold"></button>
-        <button class="ql-italic"></button>
-        <button class="ql-underline"></button>
-      </span>
-      <span class="ql-formats">
-        <button class="ql-list" value="ordered"></button>
-        <button class="ql-list" value="bullet"></button>
-      </span>
-      <span class="ql-formats">
-        <button class="ql-clean"></button>
-      </span>
-    `;
-
-    const editorArea = document.createElement("div");
-    editorArea.className = "editor-area";
-    editorArea.id = `editor-topic-${item.id}`;
-
-    editorContainer.appendChild(toolbar);
-    editorContainer.appendChild(editorArea);
-    card.appendChild(editorContainer);
-
-    listWrapper.appendChild(card);
-
-    const quill = new Quill(editorArea, {
-      theme: "snow",
-      placeholder: "Nota topik ini...",
-      modules: {
-        toolbar: `#toolbar-topic-${item.id}`
-      }
-    });
-
-    if (item.noteHtml) {
-      quill.root.innerHTML = item.noteHtml;
-    }
-
-    quill.on("text-change", debounce(async () => {
-      AppState.syncing = true;
-      updateFooterSync();
-      await updateTopicNote(item.id, quill.root.innerHTML);
-      AppState.syncing = false;
-      AppState.lastSynced = new Date();
-      updateFooterSync();
-    }, 600));
+    list.appendChild(card);
   });
 }
 
-/* -------- Subtopic Level View (x.1 ... x.9) -------- */
+// ui.js — PART 2
+// ------------------------------------------------------------
+// SUBTOPIK x.1 – x.9 + LOG BUTTON (ambil subtopik x.1)
+// ------------------------------------------------------------
 
 function renderSubtopicLevelView() {
   const container = document.createElement("div");
 
-  const backRow = document.createElement("div");
-  backRow.className = "back-row";
+  /* ---------------- BACK BUTTON ---------------- */
 
-  const backBtn = document.createElement("button");
-  backBtn.className = "back-btn";
-  backBtn.type = "button";
+  const back = document.createElement("div");
+  back.className = "back-row";
+
+  const btn = document.createElement("button");
+  btn.className = "back-btn";
 
   if (AppState.currentLevel === 1) {
-    backBtn.innerHTML = "⟵ <span>Topik besar</span>";
-    backBtn.onclick = () => {
+    btn.innerHTML = "⟵ <span>Topik Besar</span>";
+    btn.onclick = () => {
       setView("topics");
       setCurrentLevel(0);
       AppState.searchText = "";
       renderApp();
     };
   } else {
-    backBtn.innerHTML = "⟵ <span>Subtopik tahap sebelumnya</span>";
-    backBtn.onclick = () => {
+    btn.innerHTML = "⟵ <span>Subtopik Sebelumnya</span>";
+    btn.onclick = () => {
       setCurrentLevel(AppState.currentLevel - 1);
       setView("subtopicLevel");
       AppState.searchText = "";
@@ -721,22 +668,22 @@ function renderSubtopicLevelView() {
     };
   }
 
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "breadcrumb";
-  const levelLabel = AppState.currentLevel === 0
-    ? "Topik"
-    : `Subtopik x.${AppState.currentLevel}`;
-  breadcrumb.textContent =
-    `${AppState.currentSubject?.name || ""} › ${AppState.currentVersion?.name || ""} › ${AppState.currentTopic?.name || ""} › ${levelLabel}`;
+  const crumb = document.createElement("div");
+  crumb.className = "breadcrumb";
+  crumb.textContent =
+    `${AppState.currentSubject.name} › ${AppState.currentVersion.name} › ${AppState.currentTopic.name} › x.${AppState.currentLevel}`;
 
-  backRow.appendChild(backBtn);
-  backRow.appendChild(breadcrumb);
-  container.appendChild(backRow);
+  back.appendChild(btn);
+  back.appendChild(crumb);
+  container.appendChild(back);
 
-  const sectionHeader = document.createElement("div");
-  sectionHeader.className = "section-header";
+  /* ---------------- HEADER ---------------- */
+
+  const header = document.createElement("div");
+  header.className = "section-header";
 
   const left = document.createElement("div");
+
   const title = document.createElement("div");
   title.className = "section-title";
   title.textContent = `Subtopik x.${AppState.currentLevel}`;
@@ -745,20 +692,20 @@ function renderSubtopicLevelView() {
   subtitle.className = "section-subtitle";
   subtitle.textContent =
     AppState.currentLevel === 9
-      ? "Tahap subtopik terakhir. Di sini hanya nota dan subtopik dalam tahap ini sahaja."
-      : "Setiap subtopik ada nota dan boleh bercabang lagi ke tahap seterusnya.";
+      ? "Tahap subtopik terakhir."
+      : "Setiap subtopik ada nota dan boleh bercabang lagi.";
 
   left.appendChild(title);
   left.appendChild(subtitle);
-  sectionHeader.appendChild(left);
+  header.appendChild(left);
 
-  container.appendChild(sectionHeader);
+  container.appendChild(header);
 
-  // BUTANG "TAMBAH KE LOG" KHAS UNTUK SUBTOPIK x.1
-  if (AppState.currentLevel === 1) {
+  /* ---------------- BUTTON: TAMBAH KE LOG (di page x.2) ---------------- */
+
+  if (AppState.currentLevel === 2) {
     const logBtn = document.createElement("button");
     logBtn.className = "btn-secondary";
-    logBtn.type = "button";
 
     const icon = document.createElement("span");
     icon.className = "btn-secondary-icon";
@@ -772,67 +719,86 @@ function renderSubtopicLevelView() {
 
     logBtn.onclick = async () => {
       try {
-        await addLogEntry(AppState.currentSubject, AppState.currentVersion, AppState.currentTopic);
+        // Cari subtopik x.1
+        const x1List = await listSubtopics(AppState.currentTopic.id, 1, "");
+        if (!x1List.length) {
+          alert("Tiada subtopik x.1 ditemui.");
+          return;
+        }
+
+        const subtopicX1 = x1List[0]; // ambil subtopik pertama x.1
+
+        await addLogEntry(
+          AppState.currentSubject,
+          AppState.currentVersion,
+          AppState.currentTopic,
+          subtopicX1
+        );
+
         alert("Log sejarah telah ditambah.");
       } catch (err) {
-        console.error("Gagal tambah log:", err);
-        alert("Gagal tambah log. Sila cuba lagi.");
+        console.error(err);
+        alert("Gagal menambah log.");
       }
     };
 
     container.appendChild(logBtn);
   }
 
+  /* ---------------- SEARCH ROW ---------------- */
+
   const searchRow = createSearchRow(
     "Cari subtopik...",
     () => reloadSubtopics(container),
     async () => {
-      const name = prompt("Nama subtopik:", "Subtopik");
+      const name = prompt("Nama subtopik:");
       if (name) {
-        const parentId =
-          AppState.currentLevel === 1
-            ? AppState.currentTopic.id
-            : AppState.currentTopic.id; // versi simple: semua level share parent topic
-        await createSubtopic(parentId, AppState.currentLevel, name.trim());
+        await createSubtopic(AppState.currentTopic.id, AppState.currentLevel, name);
         reloadSubtopics(container);
       }
     },
     "Tambah Subtopik"
   );
+
   container.appendChild(searchRow);
 
-  const listWrapper = document.createElement("div");
-  listWrapper.className = "list-stack";
-  listWrapper.id = "subtopics-list";
-  container.appendChild(listWrapper);
+  /* ---------------- LIST WRAPPER ---------------- */
+
+  const list = document.createElement("div");
+  list.className = "list-stack";
+  list.id = "subtopics-list";
+  container.appendChild(list);
 
   reloadSubtopics(container);
 
   return container;
 }
 
+/* ---------------- LOAD SUBTOPIK ---------------- */
+
 async function reloadSubtopics(container) {
-  const listWrapper = container.querySelector("#subtopics-list");
-  listWrapper.innerHTML = "";
+  const list = container.querySelector("#subtopics-list");
+  list.innerHTML = "";
 
-  const parentId =
-    AppState.currentLevel === 1
-      ? AppState.currentTopic.id
-      : AppState.currentTopic.id;
-
-  const items = await listSubtopics(parentId, AppState.currentLevel, AppState.searchText || "");
+  const items = await listSubtopics(
+    AppState.currentTopic.id,
+    AppState.currentLevel,
+    AppState.searchText
+  );
 
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Tiada subtopik di tahap ini.";
-    listWrapper.appendChild(empty);
+    empty.textContent = "Tiada subtopik.";
+    list.appendChild(empty);
     return;
   }
 
   items.forEach(item => {
     const card = document.createElement("div");
     card.className = "item-card";
+
+    /* ---------------- HEADER ---------------- */
 
     const header = document.createElement("div");
     header.className = "item-card-header";
@@ -848,26 +814,22 @@ async function reloadSubtopics(container) {
     badge.className = "badge-level";
     badge.textContent = `x.${item.level}`;
 
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "icon-btn";
-    btnEdit.type = "button";
-    btnEdit.title = "Sunting nama";
-    btnEdit.innerHTML = "✎";
-    btnEdit.onclick = async (e) => {
+    const edit = document.createElement("button");
+    edit.className = "icon-btn";
+    edit.innerHTML = "✎";
+    edit.onclick = async (e) => {
       e.stopPropagation();
-      const newName = prompt("Nama subtopik:", item.name);
-      if (newName && newName.trim()) {
-        await updateSubtopicName(item.id, newName.trim());
+      const name = prompt("Nama subtopik:", item.name);
+      if (name) {
+        await updateSubtopicName(item.id, name);
         reloadSubtopics(container);
       }
     };
 
-    const btnDelete = document.createElement("button");
-    btnDelete.className = "icon-btn danger";
-    btnDelete.type = "button";
-    btnDelete.title = "Padam subtopik";
-    btnDelete.innerHTML = "✕";
-    btnDelete.onclick = async (e) => {
+    const del = document.createElement("button");
+    del.className = "icon-btn danger";
+    del.innerHTML = "✕";
+    del.onclick = async (e) => {
       e.stopPropagation();
       if (confirm("Padam subtopik ini?")) {
         await deleteSubtopic(item.id);
@@ -876,28 +838,30 @@ async function reloadSubtopics(container) {
     };
 
     if (AppState.currentLevel < 9) {
-      const btnNext = document.createElement("button");
-      btnNext.className = "icon-btn";
-      btnNext.type = "button";
-      btnNext.title = `Pergi ke subtopik x.${AppState.currentLevel + 1}`;
-      btnNext.innerHTML = "⤵";
-      btnNext.onclick = (e) => {
+      const go = document.createElement("button");
+      go.className = "icon-btn";
+      go.innerHTML = "⤵";
+      go.title = `Pergi ke subtopik x.${AppState.currentLevel + 1}`;
+      go.onclick = (e) => {
         e.stopPropagation();
         setCurrentLevel(AppState.currentLevel + 1);
         setView("subtopicLevel");
         AppState.searchText = "";
         renderApp();
       };
-      right.appendChild(btnNext);
+      right.appendChild(go);
     }
 
     right.appendChild(badge);
-    right.appendChild(btnEdit);
-    right.appendChild(btnDelete);
+    right.appendChild(edit);
+    right.appendChild(del);
 
     header.appendChild(left);
     header.appendChild(right);
+
     card.appendChild(header);
+
+    /* ---------------- EDITOR ---------------- */
 
     const editorContainer = document.createElement("div");
     editorContainer.className = "editor-container";
@@ -929,7 +893,9 @@ async function reloadSubtopics(container) {
     editorContainer.appendChild(editorArea);
     card.appendChild(editorContainer);
 
-    listWrapper.appendChild(card);
+    list.appendChild(card);
+
+    /* ---------------- INIT QUILL ---------------- */
 
     const quill = new Quill(editorArea, {
       theme: "snow",
@@ -954,70 +920,82 @@ async function reloadSubtopics(container) {
   });
 }
 
-/* -------- Logs View -------- */
+// ui.js — PART 3
+// ------------------------------------------------------------
+// LOG VIEW + FOOTER SYNC + DEBOUNCE
+// ------------------------------------------------------------
+
+/* ---------------- LOG VIEW ---------------- */
 
 function renderLogsView() {
   const container = document.createElement("div");
 
-  const backRow = document.createElement("div");
-  backRow.className = "back-row";
+  /* BACK BUTTON */
+  const back = document.createElement("div");
+  back.className = "back-row";
 
-  const backBtn = document.createElement("button");
-  backBtn.className = "back-btn";
-  backBtn.type = "button";
-  backBtn.innerHTML = "⟵ <span>Kembali ke Subjek</span>";
-  backBtn.onclick = () => {
+  const btn = document.createElement("button");
+  btn.className = "back-btn";
+  btn.innerHTML = "⟵ <span>Kembali ke Subjek</span>";
+  btn.onclick = () => {
     setView("subjects");
     renderApp();
   };
 
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "breadcrumb";
-  breadcrumb.textContent = "Log sejarah bacaan / ulangkaji";
+  const crumb = document.createElement("div");
+  crumb.className = "breadcrumb";
+  crumb.textContent = "Log Sejarah";
 
-  backRow.appendChild(backBtn);
-  backRow.appendChild(breadcrumb);
-  container.appendChild(backRow);
+  back.appendChild(btn);
+  back.appendChild(crumb);
+  container.appendChild(back);
 
-  const sectionHeader = document.createElement("div");
-  sectionHeader.className = "section-header";
+  /* HEADER */
+  const header = document.createElement("div");
+  header.className = "section-header";
 
   const left = document.createElement("div");
+
   const title = document.createElement("div");
   title.className = "section-title";
   title.textContent = "Log Sejarah";
 
   const subtitle = document.createElement("div");
   subtitle.className = "section-subtitle";
-  subtitle.textContent = "Senarai semua topik yang anda tandakan melalui butang 'Tambah ke Log' di subtopik x.1.";
+  subtitle.textContent =
+    "Senarai semua log yang ditambah melalui butang 'Tambah ke Log'.";
 
   left.appendChild(title);
   left.appendChild(subtitle);
-  sectionHeader.appendChild(left);
+  header.appendChild(left);
 
-  container.appendChild(sectionHeader);
+  container.appendChild(header);
 
-  const listWrapper = document.createElement("div");
-  listWrapper.className = "log-list";
-  listWrapper.id = "logs-list";
-  container.appendChild(listWrapper);
+  /* LIST WRAPPER */
+  const list = document.createElement("div");
+  list.className = "log-list";
+  list.id = "logs-list";
+  container.appendChild(list);
 
   reloadLogs(container);
 
   return container;
 }
 
+/* ---------------- LOAD LOGS ---------------- */
+
 async function reloadLogs(container) {
-  const listWrapper = container.querySelector("#logs-list");
-  listWrapper.innerHTML = "";
+  const list = container.querySelector("#logs-list");
+  list.innerHTML = "";
 
   const items = await listLogs();
 
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Tiada log lagi. Pergi ke subtopik x.1 dan tekan 'Tambah ke Log' untuk simpan sejarah.";
-    listWrapper.appendChild(empty);
+    empty.textContent =
+      "Tiada log lagi. Pergi ke subtopik x.2 dan tekan 'Tambah ke Log'.";
+    list.appendChild(empty);
     return;
   }
 
@@ -1025,10 +1003,12 @@ async function reloadLogs(container) {
     const row = document.createElement("div");
     row.className = "log-item";
 
+    /* TITLE = Subtopik x.1 */
     const title = document.createElement("div");
     title.className = "log-title";
-    title.textContent = item.topicName || "(Topik tanpa nama)";
+    title.textContent = item.subtopicName || "(Subtopik tanpa nama)";
 
+    /* META = Subjek • Versi • Topik • Tarikh */
     const meta = document.createElement("div");
     meta.className = "log-meta";
 
@@ -1036,33 +1016,38 @@ async function reloadLogs(container) {
     let dateText = "Tarikh tidak diketahui";
 
     if (date) {
-      const hari = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"][date.getDay()];
-      const bulan = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogos", "Sep", "Okt", "Nov", "Dis"][date.getMonth()];
+      const hari = ["Ahad","Isnin","Selasa","Rabu","Khamis","Jumaat","Sabtu"][date.getDay()];
+      const bulan = ["Jan","Feb","Mac","Apr","Mei","Jun","Jul","Ogos","Sep","Okt","Nov","Dis"][date.getMonth()];
       const d = date.getDate();
       const y = date.getFullYear();
+
       let hours = date.getHours();
       const minutes = String(date.getMinutes()).padStart(2, "0");
       const ampm = hours >= 12 ? "petang" : "pagi";
       if (hours === 0) hours = 12;
       else if (hours > 12) hours -= 12;
+
       dateText = `${hari}, ${d} ${bulan} ${y}, ${hours}:${minutes} ${ampm}`;
     }
 
-    meta.textContent = `${item.subjectName || "Tanpa subjek"} • ${item.versionName || "Tanpa versi"} • ${dateText}`;
+    meta.textContent =
+      `${item.subjectName} • ${item.versionName} • ${item.topicName} • ${dateText}`;
 
     row.appendChild(title);
     row.appendChild(meta);
-    listWrapper.appendChild(row);
+    list.appendChild(row);
   });
 }
 
-/* -------- Footer sync update -------- */
+/* ---------------- FOOTER SYNC UPDATE ---------------- */
 
 function updateFooterSync() {
   const root = document.getElementById("app-root");
   if (!root) return;
+
   const footer = root.querySelector(".app-footer");
   if (!footer) return;
+
   const pill = footer.querySelector(".sync-pill");
   if (!pill) return;
 
@@ -1079,7 +1064,7 @@ function updateFooterSync() {
   pill.appendChild(label);
 }
 
-/* -------- Util: debounce -------- */
+/* ---------------- DEBOUNCE ---------------- */
 
 function debounce(fn, delay) {
   let t;
