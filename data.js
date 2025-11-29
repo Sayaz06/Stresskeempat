@@ -1,4 +1,7 @@
-// data.js
+// data.js — PART 1
+// ------------------------------------------------------------
+// SUBJECTS, VERSIONS, TOPICS, SUBTOPICS
+// ------------------------------------------------------------
 
 function serverTimestamp() {
   return firebase.firestore.FieldValue.serverTimestamp();
@@ -43,7 +46,6 @@ async function deleteSubjectCascade(subjectId) {
       const topicId = t.id;
 
       await deleteSubtopicsCascade(topicId);
-
       await db.collection("topics").doc(topicId).delete();
     }
 
@@ -110,6 +112,10 @@ async function updateVersionName(id, name) {
   });
 }
 
+async function deleteVersion(id) {
+  await db.collection("versions").doc(id).delete();
+}
+
 async function listVersions(subjectId, search = "") {
   const user = AppState.user;
   if (!user) return [];
@@ -160,6 +166,10 @@ async function updateTopicNote(id, html) {
     noteHtml: html,
     updatedAt: serverTimestamp()
   });
+}
+
+async function deleteTopic(id) {
+  await db.collection("topics").doc(id).delete();
 }
 
 async function listTopics(versionId, search = "") {
@@ -215,6 +225,10 @@ async function updateSubtopicNote(id, html) {
   });
 }
 
+async function deleteSubtopic(id) {
+  await db.collection("subtopics").doc(id).delete();
+}
+
 async function listSubtopics(parentId, level, search = "") {
   const user = AppState.user;
   if (!user) return [];
@@ -236,7 +250,10 @@ async function listSubtopics(parentId, level, search = "") {
   return items;
 }
 
-/* ---------------- LOGS (WITH SUBTOPIC X.1) ---------------- */
+// data.js — PART 2
+// ------------------------------------------------------------
+// LOGS (SEJARAH ULANGKAJI)
+// ------------------------------------------------------------
 
 async function addLogEntry(subject, version, topic, subtopicX1) {
   const user = AppState.user;
