@@ -1,7 +1,6 @@
 {
   "name": "Stresskeempat - Nota Subjek",
   "short_name": "Stress4",
-  "id": "https://sayaz.github.io/stresskeempat/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",
@@ -32,6 +31,7 @@
     }
   ]
 }
+
 
 
 
