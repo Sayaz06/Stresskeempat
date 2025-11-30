@@ -1,10 +1,17 @@
 // auth.js
 
+let signingIn = false;
+
 function signInWithGoogle() {
+  if (signingIn) return;
+  signingIn = true;
+
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch(err => {
     console.error("Sign-in error:", err);
     alert("Gagal log masuk. Sila cuba lagi.");
+  }).finally(() => {
+    signingIn = false;
   });
 }
 
@@ -25,7 +32,7 @@ auth.onAuthStateChanged(user => {
     setCurrentSubject(null);
     setCurrentVersion(null);
     setCurrentTopic(null);
-    setCurrentLevel(0);
+    resetSubtopicPath(); // ✅ ganti setCurrentLevel
   }
 
   renderApp();
