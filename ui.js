@@ -1,6 +1,6 @@
-// ui.js — PART 1
+// ui.js — Recursive Subtopics Version
 // ------------------------------------------------------------
-// HEADER + LOGIN + SUBJECTS + VERSIONS + TOPICS
+// HEADER, ROUTER, FOOTER
 // ------------------------------------------------------------
 
 function renderApp() {
@@ -69,7 +69,7 @@ function renderHeader() {
   return header;
 }
 
-/* ---------------- CONTENT ROUTER ---------------- */
+/* ---------------- ROUTER ---------------- */
 
 function renderContent() {
   const container = document.createElement("div");
@@ -86,8 +86,8 @@ function renderContent() {
     container.appendChild(renderVersionsView());
   } else if (AppState.view === "topics") {
     container.appendChild(renderTopicsView());
-  } else if (AppState.view === "subtopicLevel") {
-    container.appendChild(renderSubtopicLevelView());
+  } else if (AppState.view === "subtopics") {
+    container.appendChild(renderSubtopicsView());
   } else if (AppState.view === "logs") {
     container.appendChild(renderLogsView());
   }
@@ -123,7 +123,32 @@ function renderFooter() {
   return footer;
 }
 
-/* ---------------- LOGIN VIEW ---------------- */
+function updateFooterSync() {
+  const root = document.getElementById("app-root");
+  if (!root) return;
+
+  const footer = root.querySelector(".app-footer");
+  if (!footer) return;
+
+  const pill = footer.querySelector(".sync-pill");
+  if (!pill) return;
+
+  pill.innerHTML = "";
+
+  const dot = document.createElement("span");
+  dot.textContent = "●";
+  dot.style.color = AppState.syncing ? "#f97316" : "#22c55e";
+
+  const label = document.createElement("span");
+  label.textContent = AppState.syncing ? "Menyimpan..." : "Tersimpan";
+
+  pill.appendChild(dot);
+  pill.appendChild(label);
+}
+
+// ------------------------------------------------------------
+// LOGIN
+// ------------------------------------------------------------
 
 function renderLoginView() {
   const card = document.createElement("div");
@@ -158,7 +183,9 @@ function renderLoginView() {
   return card;
 }
 
-/* ---------------- SEARCH ROW ---------------- */
+// ------------------------------------------------------------
+// SHARED UI PIECES
+// ------------------------------------------------------------
 
 function createSearchRow(placeholder, onSearch, onAdd, addLabel) {
   const row = document.createElement("div");
@@ -193,7 +220,29 @@ function createSearchRow(placeholder, onSearch, onAdd, addLabel) {
   return row;
 }
 
-/* ---------------- SUBJECTS VIEW ---------------- */
+function renderBreadcrumbForSubtopics() {
+  // Perniagaan › Semester 1 › Topik Aidil › Cara Berjalan › Teknik Betul
+  const parts = [];
+
+  if (AppState.currentSubject) {
+    parts.push(AppState.currentSubject.name);
+  }
+  if (AppState.currentVersion) {
+    parts.push(AppState.currentVersion.name);
+  }
+  if (AppState.currentTopic) {
+    parts.push(AppState.currentTopic.name);
+  }
+  AppState.currentSubtopicPath.forEach(sub => {
+    parts.push(sub.name);
+  });
+
+  return parts.join(" › ");
+}
+
+// ------------------------------------------------------------
+// SUBJECTS
+// ------------------------------------------------------------
 
 function renderSubjectsView() {
   const container = document.createElement("div");
@@ -339,7 +388,9 @@ async function reloadSubjects(container) {
   });
 }
 
-/* ---------------- VERSIONS VIEW ---------------- */
+// ------------------------------------------------------------
+// VERSIONS
+// ------------------------------------------------------------
 
 function renderVersionsView() {
   const container = document.createElement("div");
@@ -457,8 +508,8 @@ async function reloadVersions(container) {
     del.innerHTML = "✕";
     del.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm("Padam versi ini?")) {
-        await deleteVersion(item.id);
+      if (confirm("Padam versi ini beserta semua topik dan subtopik?")) {
+        await deleteVersionCascade(item.id);
         reloadVersions(container);
       }
     };
@@ -483,7 +534,9 @@ async function reloadVersions(container) {
   });
 }
 
-/* ---------------- TOPICS VIEW ---------------- */
+// ------------------------------------------------------------
+// TOPICS
+// ------------------------------------------------------------
 
 function renderTopicsView() {
   const container = document.createElement("div");
@@ -519,7 +572,7 @@ function renderTopicsView() {
 
   const subtitle = document.createElement("div");
   subtitle.className = "section-subtitle";
-  subtitle.textContent = "Setiap topik ada nota dan subtopik x.1 hingga x.9.";
+  subtitle.textContent = "Setiap topik boleh ada nota dan pokok subtopik sendiri.";
 
   left.appendChild(title);
   left.appendChild(subtitle);
@@ -601,8 +654,8 @@ async function reloadTopics(container) {
     del.innerHTML = "✕";
     del.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm("Padam topik ini?")) {
-        await deleteTopic(item.id);
+      if (confirm("Padam topik ini beserta semua subtopik di bawahnya?")) {
+        await deleteTopicCascade(item.id);
         reloadTopics(container);
       }
     };
@@ -610,12 +663,12 @@ async function reloadTopics(container) {
     const go = document.createElement("button");
     go.className = "icon-btn";
     go.innerHTML = "⤵";
-    go.title = "Pergi ke subtopik x.1";
+    go.title = "Pergi ke subtopik pertama";
     go.onclick = (e) => {
       e.stopPropagation();
       setCurrentTopic(item);
-      setCurrentLevel(1);
-      setView("subtopicLevel");
+      resetSubtopicPath();
+      setView("subtopics");
       AppState.searchText = "";
       renderApp();
     };
@@ -630,39 +683,48 @@ async function reloadTopics(container) {
 
     card.appendChild(header);
 
+    // optional: boleh tambah editor nota topik besar di sini kalau perlu
+
     list.appendChild(card);
   });
 }
 
-// ui.js — PART 2
 // ------------------------------------------------------------
-// SUBTOPIK x.1 – x.9 + LOG BUTTON (ambil subtopik x.1)
+// SUBTOPICS (RECURSIVE)
 // ------------------------------------------------------------
 
-function renderSubtopicLevelView() {
+function getCurrentParentIdForSubtopics() {
+  if (AppState.currentSubtopicPath.length === 0) {
+    // anak-anak direct kepada topik
+    return AppState.currentTopic.id;
+  }
+  // anak-anak direct kepada subtopic terakhir dalam path
+  const last = AppState.currentSubtopicPath[AppState.currentSubtopicPath.length - 1];
+  return last.id;
+}
+
+function renderSubtopicsView() {
   const container = document.createElement("div");
 
-  /* ---------------- BACK BUTTON ---------------- */
-
+  // BACK ROW
   const back = document.createElement("div");
   back.className = "back-row";
 
   const btn = document.createElement("button");
   btn.className = "back-btn";
 
-  if (AppState.currentLevel === 1) {
+  if (AppState.currentSubtopicPath.length === 0) {
     btn.innerHTML = "⟵ <span>Topik Besar</span>";
     btn.onclick = () => {
       setView("topics");
-      setCurrentLevel(0);
+      resetSubtopicPath();
       AppState.searchText = "";
       renderApp();
     };
   } else {
-    btn.innerHTML = "⟵ <span>Subtopik Sebelumnya</span>";
+    btn.innerHTML = "⟵ <span>Naik satu tahap</span>";
     btn.onclick = () => {
-      setCurrentLevel(AppState.currentLevel - 1);
-      setView("subtopicLevel");
+      popSubtopicFromPath();
       AppState.searchText = "";
       renderApp();
     };
@@ -670,40 +732,32 @@ function renderSubtopicLevelView() {
 
   const crumb = document.createElement("div");
   crumb.className = "breadcrumb";
-  crumb.textContent =
-    `${AppState.currentSubject.name} › ${AppState.currentVersion.name} › ${AppState.currentTopic.name} › x.${AppState.currentLevel}`;
+  crumb.textContent = renderBreadcrumbForSubtopics();
 
   back.appendChild(btn);
   back.appendChild(crumb);
   container.appendChild(back);
 
-  /* ---------------- HEADER ---------------- */
-
+  // HEADER
   const header = document.createElement("div");
   header.className = "section-header";
 
   const left = document.createElement("div");
-
   const title = document.createElement("div");
   title.className = "section-title";
-  title.textContent = `Subtopik x.${AppState.currentLevel}`;
+  title.textContent = "Subtopik";
 
   const subtitle = document.createElement("div");
   subtitle.className = "section-subtitle";
-  subtitle.textContent =
-    AppState.currentLevel === 9
-      ? "Tahap subtopik terakhir."
-      : "Setiap subtopik ada nota dan boleh bercabang lagi.";
+  subtitle.textContent = "Setiap subtopik boleh ada subtopik anak tanpa had.";
 
   left.appendChild(title);
   left.appendChild(subtitle);
   header.appendChild(left);
 
-  container.appendChild(header);
-
-  /* ---------------- BUTTON: TAMBAH KE LOG (di page x.2) ---------------- */
-
-  if (AppState.currentLevel === 2) {
+  // BUTTON: TAMBAH KE LOG (pada subtopik semasa, kalau ada)
+  const right = document.createElement("div");
+  if (AppState.currentSubtopicPath.length > 0) {
     const logBtn = document.createElement("button");
     logBtn.className = "btn-secondary";
 
@@ -719,20 +773,14 @@ function renderSubtopicLevelView() {
 
     logBtn.onclick = async () => {
       try {
-        // Cari subtopik x.1
-        const x1List = await listSubtopics(AppState.currentTopic.id, 1, "");
-        if (!x1List.length) {
-          alert("Tiada subtopik x.1 ditemui.");
-          return;
-        }
-
-        const subtopicX1 = x1List[0]; // ambil subtopik pertama x.1
+        const currentSubtopic =
+          AppState.currentSubtopicPath[AppState.currentSubtopicPath.length - 1];
 
         await addLogEntry(
           AppState.currentSubject,
           AppState.currentVersion,
           AppState.currentTopic,
-          subtopicX1
+          currentSubtopic
         );
 
         alert("Log sejarah telah ditambah.");
@@ -742,18 +790,21 @@ function renderSubtopicLevelView() {
       }
     };
 
-    container.appendChild(logBtn);
+    right.appendChild(logBtn);
   }
 
-  /* ---------------- SEARCH ROW ---------------- */
+  header.appendChild(right);
+  container.appendChild(header);
 
+  // SEARCH ROW
   const searchRow = createSearchRow(
     "Cari subtopik...",
     () => reloadSubtopics(container),
     async () => {
       const name = prompt("Nama subtopik:");
       if (name) {
-        await createSubtopic(AppState.currentTopic.id, AppState.currentLevel, name);
+        const parentId = getCurrentParentIdForSubtopics();
+        await createSubtopic(parentId, name);
         reloadSubtopics(container);
       }
     },
@@ -762,8 +813,7 @@ function renderSubtopicLevelView() {
 
   container.appendChild(searchRow);
 
-  /* ---------------- LIST WRAPPER ---------------- */
-
+  // LIST
   const list = document.createElement("div");
   list.className = "list-stack";
   list.id = "subtopics-list";
@@ -774,22 +824,17 @@ function renderSubtopicLevelView() {
   return container;
 }
 
-/* ---------------- LOAD SUBTOPIK ---------------- */
-
 async function reloadSubtopics(container) {
   const list = container.querySelector("#subtopics-list");
   list.innerHTML = "";
 
-  const items = await listSubtopics(
-    AppState.currentTopic.id,
-    AppState.currentLevel,
-    AppState.searchText
-  );
+  const parentId = getCurrentParentIdForSubtopics();
+  const items = await listSubtopics(parentId, AppState.searchText);
 
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Tiada subtopik.";
+    empty.textContent = "Tiada subtopik di tahap ini.";
     list.appendChild(empty);
     return;
   }
@@ -798,8 +843,7 @@ async function reloadSubtopics(container) {
     const card = document.createElement("div");
     card.className = "item-card";
 
-    /* ---------------- HEADER ---------------- */
-
+    // HEADER
     const header = document.createElement("div");
     header.className = "item-card-header";
 
@@ -812,7 +856,18 @@ async function reloadSubtopics(container) {
 
     const badge = document.createElement("span");
     badge.className = "badge-level";
-    badge.textContent = `x.${item.level}`;
+    badge.textContent = "Subtopik";
+
+    const go = document.createElement("button");
+    go.className = "icon-btn";
+    go.innerHTML = "⤵";
+    go.title = "Pergi ke subtopik anak";
+    go.onclick = (e) => {
+      e.stopPropagation();
+      pushSubtopicToPath(item);
+      AppState.searchText = "";
+      renderApp();
+    };
 
     const edit = document.createElement("button");
     edit.className = "icon-btn";
@@ -831,28 +886,14 @@ async function reloadSubtopics(container) {
     del.innerHTML = "✕";
     del.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm("Padam subtopik ini?")) {
+      if (confirm("Padam subtopik ini beserta semua subtopik anaknya?")) {
         await deleteSubtopic(item.id);
         reloadSubtopics(container);
       }
     };
 
-    if (AppState.currentLevel < 9) {
-      const go = document.createElement("button");
-      go.className = "icon-btn";
-      go.innerHTML = "⤵";
-      go.title = `Pergi ke subtopik x.${AppState.currentLevel + 1}`;
-      go.onclick = (e) => {
-        e.stopPropagation();
-        setCurrentLevel(AppState.currentLevel + 1);
-        setView("subtopicLevel");
-        AppState.searchText = "";
-        renderApp();
-      };
-      right.appendChild(go);
-    }
-
     right.appendChild(badge);
+    right.appendChild(go);
     right.appendChild(edit);
     right.appendChild(del);
 
@@ -861,8 +902,7 @@ async function reloadSubtopics(container) {
 
     card.appendChild(header);
 
-    /* ---------------- EDITOR ---------------- */
-
+    // EDITOR
     const editorContainer = document.createElement("div");
     editorContainer.className = "editor-container";
 
@@ -895,8 +935,7 @@ async function reloadSubtopics(container) {
 
     list.appendChild(card);
 
-    /* ---------------- INIT QUILL ---------------- */
-
+    // INIT QUILL
     const quill = new Quill(editorArea, {
       theme: "snow",
       placeholder: "Nota subtopik ini...",
@@ -920,17 +959,13 @@ async function reloadSubtopics(container) {
   });
 }
 
-// ui.js — PART 3
 // ------------------------------------------------------------
-// LOG VIEW + FOOTER SYNC + DEBOUNCE
+// LOGS VIEW
 // ------------------------------------------------------------
-
-/* ---------------- LOG VIEW ---------------- */
 
 function renderLogsView() {
   const container = document.createElement("div");
 
-  /* BACK BUTTON */
   const back = document.createElement("div");
   back.className = "back-row";
 
@@ -950,7 +985,6 @@ function renderLogsView() {
   back.appendChild(crumb);
   container.appendChild(back);
 
-  /* HEADER */
   const header = document.createElement("div");
   header.className = "section-header";
 
@@ -963,7 +997,7 @@ function renderLogsView() {
   const subtitle = document.createElement("div");
   subtitle.className = "section-subtitle";
   subtitle.textContent =
-    "Senarai semua log yang ditambah melalui butang 'Tambah ke Log'.";
+    "Senarai semua log yang ditambah daripada subtopik.";
 
   left.appendChild(title);
   left.appendChild(subtitle);
@@ -971,7 +1005,6 @@ function renderLogsView() {
 
   container.appendChild(header);
 
-  /* LIST WRAPPER */
   const list = document.createElement("div");
   list.className = "log-list";
   list.id = "logs-list";
@@ -981,8 +1014,6 @@ function renderLogsView() {
 
   return container;
 }
-
-/* ---------------- LOAD LOGS ---------------- */
 
 async function reloadLogs(container) {
   const list = container.querySelector("#logs-list");
@@ -994,7 +1025,7 @@ async function reloadLogs(container) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
     empty.textContent =
-      "Tiada log lagi. Pergi ke subtopik x.2 dan tekan 'Tambah ke Log'.";
+      "Tiada log lagi. Pergi ke mana-mana subtopik dan tekan 'Tambah ke Log'.";
     list.appendChild(empty);
     return;
   }
@@ -1003,12 +1034,10 @@ async function reloadLogs(container) {
     const row = document.createElement("div");
     row.className = "log-item";
 
-    /* TITLE = Subtopik x.1 */
     const title = document.createElement("div");
     title.className = "log-title";
     title.textContent = item.subtopicName || "(Subtopik tanpa nama)";
 
-    /* META = Subjek • Versi • Topik • Tarikh */
     const meta = document.createElement("div");
     meta.className = "log-meta";
 
@@ -1039,32 +1068,9 @@ async function reloadLogs(container) {
   });
 }
 
-/* ---------------- FOOTER SYNC UPDATE ---------------- */
-
-function updateFooterSync() {
-  const root = document.getElementById("app-root");
-  if (!root) return;
-
-  const footer = root.querySelector(".app-footer");
-  if (!footer) return;
-
-  const pill = footer.querySelector(".sync-pill");
-  if (!pill) return;
-
-  pill.innerHTML = "";
-
-  const dot = document.createElement("span");
-  dot.textContent = "●";
-  dot.style.color = AppState.syncing ? "#f97316" : "#22c55e";
-
-  const label = document.createElement("span");
-  label.textContent = AppState.syncing ? "Menyimpan..." : "Tersimpan";
-
-  pill.appendChild(dot);
-  pill.appendChild(label);
-}
-
-/* ---------------- DEBOUNCE ---------------- */
+// ------------------------------------------------------------
+// DEBOUNCE
+// ------------------------------------------------------------
 
 function debounce(fn, delay) {
   let t;
