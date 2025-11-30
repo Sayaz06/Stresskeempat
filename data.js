@@ -1,6 +1,6 @@
-// data.js — PART 1
+// data.js — Recursive Version
 // ------------------------------------------------------------
-// SUBJECTS, VERSIONS, TOPICS, SUBTOPICS
+// SUBJECTS, VERSIONS, TOPICS, SUBTOPICS (RECURSIVE), LOGS
 // ------------------------------------------------------------
 
 function serverTimestamp() {
@@ -31,6 +31,7 @@ async function updateSubjectName(id, name) {
 }
 
 async function deleteSubjectCascade(subjectId) {
+  // delete versions of this subject
   const versions = await db.collection("versions")
     .where("subjectId", "==", subjectId)
     .get();
@@ -38,6 +39,7 @@ async function deleteSubjectCascade(subjectId) {
   for (const v of versions.docs) {
     const versionId = v.id;
 
+    // delete topics under this version
     const topics = await db.collection("topics")
       .where("versionId", "==", versionId)
       .get();
@@ -45,28 +47,19 @@ async function deleteSubjectCascade(subjectId) {
     for (const t of topics.docs) {
       const topicId = t.id;
 
+      // delete all subtopics recursively for this topic
       await deleteSubtopicsCascade(topicId);
+
+      // delete topic
       await db.collection("topics").doc(topicId).delete();
     }
 
+    // delete version
     await db.collection("versions").doc(versionId).delete();
   }
 
+  // delete subject
   await db.collection("subjects").doc(subjectId).delete();
-}
-
-async function deleteSubtopicsCascade(parentId) {
-  for (let level = 1; level <= 9; level++) {
-    const snap = await db.collection("subtopics")
-      .where("parentId", "==", parentId)
-      .where("level", "==", level)
-      .get();
-
-    for (const doc of snap.docs) {
-      await deleteSubtopicsCascade(doc.id);
-      await db.collection("subtopics").doc(doc.id).delete();
-    }
-  }
 }
 
 async function listSubjects(search = "") {
@@ -112,8 +105,20 @@ async function updateVersionName(id, name) {
   });
 }
 
-async function deleteVersion(id) {
-  await db.collection("versions").doc(id).delete();
+async function deleteVersionCascade(versionId) {
+  // delete topics
+  const topics = await db.collection("topics")
+    .where("versionId", "==", versionId)
+    .get();
+
+  for (const t of topics.docs) {
+    const topicId = t.id;
+    await deleteSubtopicsCascade(topicId);
+    await db.collection("topics").doc(topicId).delete();
+  }
+
+  // delete version
+  await db.collection("versions").doc(versionId).delete();
 }
 
 async function listVersions(subjectId, search = "") {
@@ -168,8 +173,9 @@ async function updateTopicNote(id, html) {
   });
 }
 
-async function deleteTopic(id) {
-  await db.collection("topics").doc(id).delete();
+async function deleteTopicCascade(topicId) {
+  await deleteSubtopicsCascade(topicId);
+  await db.collection("topics").doc(topicId).delete();
 }
 
 async function listTopics(versionId, search = "") {
@@ -192,15 +198,26 @@ async function listTopics(versionId, search = "") {
   return items;
 }
 
-/* ---------------- SUBTOPICS ---------------- */
+/* ---------------- SUBTOPICS (RECURSIVE) ---------------- */
 
-async function createSubtopic(parentId, level, name) {
+/**
+ * Subtopic shape:
+ * {
+ *   parentId: string, // boleh topic.id atau subtopic.id
+ *   name: string,
+ *   noteHtml: string,
+ *   ownerUid: string,
+ *   createdAt,
+ *   updatedAt
+ * }
+ */
+
+async function createSubtopic(parentId, name) {
   const user = AppState.user;
   if (!user) return;
 
   const docRef = await db.collection("subtopics").add({
     parentId,
-    level,
     name,
     ownerUid: user.uid,
     noteHtml: "",
@@ -208,7 +225,7 @@ async function createSubtopic(parentId, level, name) {
     updatedAt: serverTimestamp()
   });
 
-  return { id: docRef.id, parentId, level, name };
+  return { id: docRef.id, parentId, name };
 }
 
 async function updateSubtopicName(id, name) {
@@ -226,17 +243,39 @@ async function updateSubtopicNote(id, html) {
 }
 
 async function deleteSubtopic(id) {
+  // delete all children first
+  await deleteSubtopicsCascade(id);
+  // then delete itself
   await db.collection("subtopics").doc(id).delete();
 }
 
-async function listSubtopics(parentId, level, search = "") {
+/**
+ * Delete all descendants of a parent (topic or subtopic)
+ */
+async function deleteSubtopicsCascade(parentId) {
+  const snap = await db.collection("subtopics")
+    .where("parentId", "==", parentId)
+    .get();
+
+  for (const doc of snap.docs) {
+    const childId = doc.id;
+    // recursive delete children
+    await deleteSubtopicsCascade(childId);
+    // delete this child
+    await db.collection("subtopics").doc(childId).delete();
+  }
+}
+
+/**
+ * List direct children of a parent (topic or subtopic)
+ */
+async function listSubtopics(parentId, search = "") {
   const user = AppState.user;
   if (!user) return [];
 
   let q = db.collection("subtopics")
     .where("ownerUid", "==", user.uid)
     .where("parentId", "==", parentId)
-    .where("level", "==", level)
     .orderBy("createdAt", "asc");
 
   const snap = await q.get();
@@ -250,12 +289,9 @@ async function listSubtopics(parentId, level, search = "") {
   return items;
 }
 
-// data.js — PART 2
-// ------------------------------------------------------------
-// LOGS (SEJARAH ULANGKAJI)
-// ------------------------------------------------------------
+/* ---------------- LOGS (SEJARAH) ---------------- */
 
-async function addLogEntry(subject, version, topic, subtopicX1) {
+async function addLogEntry(subject, version, topic, subtopic) {
   const user = AppState.user;
   if (!user) return;
 
@@ -266,8 +302,8 @@ async function addLogEntry(subject, version, topic, subtopicX1) {
     versionName: version.name,
     topicId: topic.id,
     topicName: topic.name,
-    subtopicId: subtopicX1.id,
-    subtopicName: subtopicX1.name,
+    subtopicId: subtopic.id,
+    subtopicName: subtopic.name,
     ownerUid: user.uid,
     createdAt: serverTimestamp()
   });
